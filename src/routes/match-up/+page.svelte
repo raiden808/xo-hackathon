@@ -9,6 +9,7 @@
 	let clickedTeams = new Set();
 	let analysisResult = '';
 	let showModal = false;
+	let isLoading = false;
 	
 	marked.setOptions({
 	  highlight: function (code, lang) {
@@ -42,6 +43,8 @@
 	
 	const showAnalysis = async () => {
 	  if (selectedTeams.length === 2) {
+		isLoading = true;
+		showModal = true;
 		const prompt = `${selectedTeams[0].displayName} VS ${selectedTeams[1].displayName} can you give me an analysis just base on current roster?`;
 		try {
 		  const res = await fetch("http://localhost:3000/generate-analysis", {
@@ -54,19 +57,21 @@
 		  const data = await res.json();
 		  if (data.story) {
 			analysisResult = marked(data.story);
-			showModal = true;
 		  } else {
 			analysisResult = "No analysis generated";
 		  }
 		} catch (error) {
 		  console.error("Error fetching analysis:", error);
 		  analysisResult = "An error occurred while generating the analysis.";
+		} finally {
+		  isLoading = false;
 		}
 	  }
 	};
 
 	const closeModal = () => {
 		showModal = false;
+		analysisResult = '';
 	};
 </script>
 
@@ -115,9 +120,16 @@
 	  <div class="modal-backdrop" on:click={closeModal}>
 		<div class="modal-content" on:click|stopPropagation>
 		  <h2>Team Analysis</h2>
-		  <div class="analysis-result">
-			{@html analysisResult}
-		  </div>
+		  {#if isLoading}
+			<div class="loading-indicator">
+			  <div class="spinner"></div>
+			  <p>Generating analysis...</p>
+			</div>
+		  {:else}
+			<div class="analysis-result">
+			  {@html analysisResult}
+			</div>
+		  {/if}
 		  <button class="close-button" on:click={closeModal}>Close</button>
 		</div>
 	  </div>
@@ -264,6 +276,28 @@
 
 	.analysis-result {
 		margin-top: 20px;
+	}
+
+	.loading-indicator {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 200px;
+	}
+
+	.spinner {
+		border: 4px solid #f3f3f3;
+		border-top: 4px solid #17408B;
+		border-radius: 50%;
+		width: 40px;
+		height: 40px;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
 	}
 
 	:global(.hljs) {
