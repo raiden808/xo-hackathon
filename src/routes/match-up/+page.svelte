@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import { marked } from 'marked';
 	import hljs from 'highlight.js';
-	import 'highlight.js/styles/github.css'; // You can choose a different style
+	import 'highlight.js/styles/github.css';
 	
 	let teams = [];
 	let selectedTeams = [];
 	let clickedTeams = new Set();
 	let analysisResult = '';
+	let showModal = false;
 	
-	// Configure marked to use highlight.js for code syntax highlighting
 	marked.setOptions({
 	  highlight: function (code, lang) {
 		const language = hljs.getLanguage(lang) ? lang : 'plaintext';
@@ -17,7 +17,6 @@
 	  },
 	});
 	
-	// Fetch the data from the API
 	onMount(async () => {
 	  try {
 		const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams');
@@ -28,7 +27,6 @@
 	  }
 	});
 	
-	// Handle team selection
 	const handleClick = (team) => {
 	  if (selectedTeams.length < 2 && !selectedTeams.includes(team)) {
 		selectedTeams = [...selectedTeams, team];
@@ -36,17 +34,15 @@
 	  }
 	};
 	
-	// Reset selection
 	const resetSelection = () => {
 	  selectedTeams = [];
 	  clickedTeams.clear();
 	  analysisResult = '';
 	};
 	
-	// Show analysis handler
 	const showAnalysis = async () => {
 	  if (selectedTeams.length === 2) {
-		const prompt = `${selectedTeams[0].displayName} VS ${selectedTeams[1].displayName} can you give me an analysis just base on current roaster?`;
+		const prompt = `${selectedTeams[0].displayName} VS ${selectedTeams[1].displayName} can you give me an analysis just base on current roster?`;
 		try {
 		  const res = await fetch("http://localhost:3000/generate-analysis", {
 			method: "POST",
@@ -58,8 +54,9 @@
 		  const data = await res.json();
 		  if (data.story) {
 			analysisResult = marked(data.story);
+			showModal = true;
 		  } else {
-			analysisResult = "No story generated";
+			analysisResult = "No analysis generated";
 		  }
 		} catch (error) {
 		  console.error("Error fetching analysis:", error);
@@ -67,80 +64,211 @@
 		}
 	  }
 	};
-	</script>
+
+	const closeModal = () => {
+		showModal = false;
+	};
+</script>
+
+<main>
+	<h1>NBA Team Comparison</h1>
 	
-	<style>
-	button {
-	  margin: 5px;
-	  padding: 10px;
-	  background-color: #0070f3;
-	  color: white;
-	  border: none;
-	  cursor: pointer;
-	}
-	button:hover {
-	  background-color: #005bb5;
-	}
-	.clicked {
-	  background-color: red;
-	}
-	.center {
-	  text-align: center;
-	  margin-top: 20px;
-	}
-	.analysis-button {
-	  margin-top: 20px;
-	}
-	.selected-teams {
-	  font-size: 1.5em;
-	  font-weight: bold;
-	  margin-top: 20px;
-	}
-	.analysis-result {
-	  margin-top: 20px;
-	  text-align: left;
-	  max-width: 800px;
-	  margin-left: auto;
-	  margin-right: auto;
-	}
-	:global(.hljs) {
-	  background: #f0f0f0;
-	  padding: 1em;
-	  border-radius: 5px;
-	}
-	</style>
-	
-	<h1>NBA Teams</h1>
-	
-	{#if teams.length > 0}
-	  {#each teams as team}
-		<button 
-		  on:click={() => handleClick(team)} 
-		  class:clicked={clickedTeams.has(team.id)} 
-		  disabled={selectedTeams.includes(team)}
-		>
-		  {team.displayName}
-		</button>
-	  {/each}
-	{:else}
-	  <p>Loading teams...</p>
-	{/if}
-	
-	<div class="center">
+	<div class="team-grid">
+		{#if teams.length > 0}
+		  {#each teams as team}
+			<button 
+			  on:click={() => handleClick(team)} 
+			  class:clicked={clickedTeams.has(team.id)} 
+			  disabled={selectedTeams.length === 2 && !selectedTeams.includes(team)}
+			>
+			  <img src={team.logos[0].href} alt={team.displayName} />
+			  <span>{team.name}</span>
+			</button>
+		  {/each}
+		{:else}
+		  <p>Loading teams...</p>
+		{/if}
+	</div>
+
+	<div class="comparison-section">
 	  {#if selectedTeams.length === 2}
 		<div class="selected-teams">
-		  {selectedTeams[0].displayName} VS {selectedTeams[1].displayName}
-		</div>
-		<button class="analysis-button" on:click={showAnalysis}>Show Analysis</button>
-	  {/if}
-	  
-	  {#if selectedTeams.length > 0}
-		<button on:click={resetSelection}>Reset Selection</button>
-	  {/if}
-	  
-	  {#if analysisResult}
-		<div class="analysis-result">
-		  {@html analysisResult}
+		  <img src={selectedTeams[0].logos[0].href} alt={selectedTeams[0].displayName} />
+		  <span>{selectedTeams[0].displayName}</span>
+		  <span>VS</span>
+		  <span>{selectedTeams[1].displayName}</span>
+		  <img src={selectedTeams[1].logos[0].href} alt={selectedTeams[1].displayName} />
 		</div>
 	  {/if}
+	  
+	  <div class="action-buttons">
+		{#if selectedTeams.length === 2}
+		  <button class="analysis-button" on:click={showAnalysis}>Show Analysis</button>
+		{/if}
+		{#if selectedTeams.length > 0}
+		  <button class="reset-button" on:click={resetSelection}>Reset Selection</button>
+		{/if}
+	  </div>
 	</div>
+	  
+	{#if showModal}
+	  <div class="modal-backdrop" on:click={closeModal}>
+		<div class="modal-content" on:click|stopPropagation>
+		  <h2>Team Analysis</h2>
+		  <div class="analysis-result">
+			{@html analysisResult}
+		  </div>
+		  <button class="close-button" on:click={closeModal}>Close</button>
+		</div>
+	  </div>
+	{/if}
+</main>
+
+<style>
+	:global(body) {
+		font-family: 'Roboto', sans-serif;
+		background-color: #17408B;  /* NBA blue */
+		color: white;
+		margin: 0;
+		padding: 20px;
+	}
+
+	main {
+		max-width: 1200px;
+		margin: 0 auto;
+	}
+
+	h1 {
+		text-align: center;
+		margin-bottom: 30px;
+	}
+
+	.team-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+		gap: 15px;
+		margin-bottom: 30px;
+	}
+
+	button {
+		background: white;
+		border: none;
+		border-radius: 10px;
+		padding: 10px;
+		cursor: pointer;
+		transition: transform 0.2s;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	button:hover {
+		transform: scale(1.05);
+	}
+
+	button.clicked {
+		box-shadow: 0 0 0 3px #C9082A;  /* NBA red */
+	}
+
+	button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	button img {
+		width: 60px;
+		height: 60px;
+		object-fit: contain;
+		margin-bottom: 5px;
+	}
+
+	button span {
+		font-size: 12px;
+		color: #17408B;
+		text-align: center;
+	}
+
+	.comparison-section {
+		text-align: center;
+		margin-bottom: 30px;
+	}
+
+	.selected-teams {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 20px;
+		margin-bottom: 20px;
+		font-size: 24px;
+	}
+
+	.selected-teams img {
+		width: 80px;
+		height: 80px;
+		object-fit: contain;
+	}
+
+	.action-buttons {
+		display: flex;
+		justify-content: center;
+		gap: 20px;
+	}
+
+	.analysis-button, .reset-button {
+		background-color: #C9082A;  /* NBA red */
+		color: white;
+		border: none;
+		padding: 10px 20px;
+		font-size: 16px;
+		cursor: pointer;
+		border-radius: 5px;
+	}
+
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.modal-content {
+		background: white;
+		color: #333;
+		padding: 20px;
+		border-radius: 10px;
+		max-width: 800px;
+		max-height: 80vh;
+		overflow-y: auto;
+	}
+
+	.modal-content h2 {
+		color: #17408B;
+		margin-top: 0;
+	}
+
+	.close-button {
+		background-color: #17408B;
+		color: white;
+		border: none;
+		padding: 10px 20px;
+		font-size: 16px;
+		cursor: pointer;
+		border-radius: 5px;
+		margin-top: 20px;
+	}
+
+	.analysis-result {
+		margin-top: 20px;
+	}
+
+	:global(.hljs) {
+		background: #f0f0f0;
+		padding: 1em;
+		border-radius: 5px;
+	}
+</style>
