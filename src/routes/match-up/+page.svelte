@@ -76,7 +76,7 @@
 </script>
 
 <main>
-	<h1>NBA Team Comparison</h1>
+	<h1>NBA Team Match Up</h1>
 	
 	<div class="team-grid">
 		{#if teams.length > 0}
