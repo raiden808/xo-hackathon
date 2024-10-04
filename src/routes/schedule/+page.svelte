@@ -68,7 +68,7 @@
 </script>
 
 <main class="container">
-  <h1 class="title">NBA Schedule</h1>
+  <h1 class="title" style="color: white;">Narz Basketball Association Schedule</h1>
   
   {#if loading}
     <p class="loading">Loading schedule...</p>
