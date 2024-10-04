@@ -3,7 +3,7 @@
 	import { marked } from 'marked';
 	import hljs from 'highlight.js';
 	import 'highlight.js/styles/github.css'; // You can choose a different style
-	
+	import { BaseUrl } from './utils/baseUrl';
 	let teams = [];
 	let selectedTeams = [];
 	let clickedTeams = new Set();
@@ -48,7 +48,7 @@
 	  if (selectedTeams.length === 2) {
 		const prompt = `${selectedTeams[0].displayName} VS ${selectedTeams[1].displayName} can you give me an analysis just base on current roaster?`;
 		try {
-		  const res = await fetch("http://localhost:3000/generate-analysis", {
+		  const res = await fetch(`${BaseUrl}/generate-analysis`, {
 			method: "POST",
 			headers: {
 			  "Content-Type": "application/json",

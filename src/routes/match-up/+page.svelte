@@ -3,6 +3,7 @@
 	import { marked } from 'marked';
 	import hljs from 'highlight.js';
 	import 'highlight.js/styles/github.css';
+	import { BaseUrl } from '../utils/baseUrl';
 	
 	let teams = [];
 	let selectedTeams = [];
@@ -47,7 +48,7 @@
 		showModal = true;
 		const prompt = `${selectedTeams[0].displayName} VS ${selectedTeams[1].displayName} can you give me an analysis just base on current roster?`;
 		try {
-		  const res = await fetch("http://localhost:3000/generate-analysis", {
+		  const res = await fetch(`${BaseUrl}/generate-analysis`, {
 			method: "POST",
 			headers: {
 			  "Content-Type": "application/json",
